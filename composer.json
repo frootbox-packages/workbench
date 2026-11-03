@@ -1,0 +1,41 @@
+{
+    "name": "frootbox/workbench",
+    "description": "Workbench for the Frootbox CMS: runs many local websites from one host and one vendor/ with the current packages",
+    "type": "library",
+    "license": "MIT",
+    "keywords": [
+        "cms",
+        "frootbox",
+        "development",
+        "workbench"
+    ],
+    "require": {
+        "php": ">=8.5",
+        "doctrine/dbal": "^4.5",
+        "frootbox/core": "^0.1",
+        "nyholm/psr7": "^1.8",
+        "nyholm/psr7-server": "^1.1",
+        "psr/http-message": "^2.0",
+        "symfony/console": "^8.1",
+        "symfony/dotenv": "^8.1",
+        "symfony/yaml": "^8.1"
+    },
+    "autoload": {
+        "psr-4": {
+            "Frootbox\\Workbench\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Frootbox\\Workbench\\Tests\\": "tests/"
+        }
+    },
+    "bin": [
+        "bin/workbench"
+    ],
+    "extra": {
+        "branch-alias": {
+            "dev-main": "0.1.x-dev"
+        }
+    }
+}

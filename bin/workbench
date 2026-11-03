@@ -1,0 +1,30 @@
+#!/usr/bin/env php
+<?php
+
+/*
+ * SPDX-License-Identifier: MIT
+ */
+
+declare(strict_types=1);
+
+// The workbench of Frootbox (decision 0254). Installed in a workbench as
+// vendor/bin/workbench, or called in the monorepo to create one with init.
+// FROOTBOX_WORKBENCH names the workbench, e.g. for the processes of "check".
+$autoload = $GLOBALS['_composer_autoload_path'] ?? null;
+$workbench = getenv('FROOTBOX_WORKBENCH');
+
+foreach ([$autoload, is_string($workbench) && '' !== $workbench ? $workbench . '/vendor/autoload.php' : null, __DIR__ . '/../vendor/autoload.php', __DIR__ . '/../../../../vendor/autoload.php'] as $file) {
+    if (is_string($file) && is_file($file)) {
+        require $file;
+
+        break;
+    }
+}
+
+if (!class_exists(Frootbox\Workbench\Console\WorkbenchConsole::class)) {
+    fwrite(STDERR, "The workbench needs composer install first.\n");
+
+    exit(1);
+}
+
+exit(Frootbox\Workbench\Console\WorkbenchConsole::run(array_values(array_map(strval(...), $argv)), __FILE__));
