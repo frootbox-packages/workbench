@@ -97,6 +97,8 @@ final class WorkbenchTest extends TestCase
         self::assertFileExists($project->path . '/extensions/demo-theme/frootbox.yaml');
         self::assertStringContainsString('theme: demo/theme', (string) file_get_contents($project->path . '/config/app.yaml'));
         self::assertStringContainsString('"url": "extensions/*"', (string) file_get_contents($project->path . '/composer.json'));
+        self::assertFileExists($project->path . '/.htaccess');
+        self::assertFileDoesNotExist($project->path . '/LICENSE', 'The website belongs to its author, not under the license of Frootbox.');
 
         $start = $this->request('http://fb.localhost/');
         self::assertSame(200, $start->getStatusCode());
