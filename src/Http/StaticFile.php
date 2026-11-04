@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 namespace Frootbox\Workbench\Http;
 
+use Frootbox\Core\Media\MediaHandler;
 use Nyholm\Psr7\Response;
 use Nyholm\Psr7\Stream;
 use Psr\Http\Message\ResponseInterface;
@@ -16,7 +17,8 @@ use Psr\Http\Message\ServerRequestInterface;
 /**
  * Files below public/ of a project, which a web server would deliver
  * itself: published assets (symlinks in development) and generated media.
- * Never PHP files or hidden files.
+ * Never PHP files or hidden files. An SVG gets the headers of the
+ * .htaccess of a website (decision 0182).
  */
 final class StaticFile
 {
@@ -81,6 +83,11 @@ final class StaticFile
             'ETag' => $etag,
             'Cache-Control' => 'no-cache',
         ];
+
+        if ('svg' === $extension) {
+            $headers['Content-Security-Policy'] = MediaHandler::SVG_POLICY;
+            $headers['X-Content-Type-Options'] = 'nosniff';
+        }
 
         if ($request->getHeaderLine('If-None-Match') === $etag) {
             return new Response(304, $headers);
