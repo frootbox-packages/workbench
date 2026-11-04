@@ -77,7 +77,14 @@ final class WorkbenchSource implements ExtensionSource
 
         $project = $this->composerJson();
         $local = $this->local();
-        $queue = \is_array($project['require'] ?? null) ? array_map(static fn(int|string $name): string => strtolower((string) $name), array_keys($project['require'])) : [];
+        // The workbench is development: require-dev counts, as composer install does without --no-dev.
+        $queue = [];
+
+        foreach (['require', 'require-dev'] as $key) {
+            if (\is_array($project[$key] ?? null)) {
+                $queue = [...$queue, ...array_map(static fn(int|string $name): string => strtolower((string) $name), array_keys($project[$key]))];
+            }
+        }
         $seen = [];
         $packages = [];
         $missing = [];

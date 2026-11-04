@@ -42,8 +42,9 @@ computer.
 
 ## Packages
 
-Active in a project is what its `composer.json` requires, like live:
-packages from the central `vendor/` and packages in its path repositories
+Active in a project is what its `composer.json` requires, like live,
+plus its `require-dev` as in a development install (e.g. the migration
+tool `frootbox/migrate-frootbox1`): packages from the central `vendor/` and packages in its path repositories
 inside the project (`extensions/*`), whose classes the workbench loads at
 runtime (PSR-4). Versions do not count. Shared code of a vendor lives in
 `<Vendor>/packages/<name>/`, a library a website needs is added once with

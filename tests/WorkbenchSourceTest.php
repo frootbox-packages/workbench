@@ -41,6 +41,7 @@ final class WorkbenchSourceTest extends TestCase
         $namespace = 'WorkbenchTest' . $suffix;
         Folder::project($this->project, [
             'require' => ['php' => '>=8.5', 'ext-intl' => '*', 'frootbox/forms' => '^0.1@dev', 'acme/website' => '*'],
+            'require-dev' => ['frootbox/migrate-frootbox1' => '^0.1@dev'],
             'repositories' => [['type' => 'path', 'url' => '../../frootbox2/packages/*'], ['type' => 'path', 'url' => 'extensions/*']],
         ]);
         Folder::write($this->project . '/extensions/website/composer.json', json_encode([
@@ -59,6 +60,7 @@ final class WorkbenchSourceTest extends TestCase
         self::assertContains('frootbox/forms', $names);
         self::assertContains('frootbox/theme-base', $names, 'Required by the project extension.');
         self::assertContains('acme/website', $names);
+        self::assertContains('frootbox/migrate-frootbox1', $names, 'The workbench is development, require-dev counts.');
         self::assertNotContains('frootbox/news', $names, 'In the central vendor/, but not required.');
         self::assertNotContains('frootbox/core', $names, 'No frootbox.yaml.');
 
