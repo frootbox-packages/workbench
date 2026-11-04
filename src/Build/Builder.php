@@ -35,6 +35,24 @@ final readonly class Builder
     /** Left out at any depth */
     public const array LEFT_OUT_ANYWHERE = ['.git', 'node_modules', '.DS_Store'];
 
+    /**
+     * In the folder of the website, for a document root set to it instead
+     * of public/: nothing is served then (decision 0270). Like skeleton/.htaccess.
+     */
+    public const string GUARD = <<<'HTACCESS'
+        # The web server shows public/, it is the document root. This file only
+        # counts when it shows this folder instead: then nothing here is served,
+        # neither .env nor the database in storage/ nor the code (decision 0270).
+        <IfModule mod_authz_core.c>
+            Require all denied
+        </IfModule>
+        <IfModule !mod_authz_core.c>
+            Order deny,allow
+            Deny from all
+        </IfModule>
+
+        HTACCESS;
+
     /** The content of a website, only with --with-content */
     public const array CONTENT = ['storage', 'public/media'];
 
@@ -63,6 +81,11 @@ final readonly class Builder
 
         ($this->say)(\sprintf('Copying %s to %s', $project->title(), $folder));
         self::copy($project->path, $folder, $withContent);
+
+        // A project of its own may have one already, e.g. from skeleton/.
+        if (!is_file($folder . '/.htaccess')) {
+            file_put_contents($folder . '/.htaccess', self::GUARD);
+        }
 
         foreach (['storage', 'var'] as $empty) {
             if (!is_dir($folder . '/' . $empty)) {
@@ -268,8 +291,11 @@ final readonly class Builder
             1. The server needs PHP 8.5 and runs this folder as it is. Composer is
                not needed. `app.url` in `config/app.yaml` is the address of the
                website; set it in the project before building.
-            2. Upload the folder. The web server shows `public/`, it is the
-               document root.
+            2. Upload the folder. **The web server shows `public/`, it is the
+               document root**, never this folder: it holds `.env` and the
+               database. Then https://<address>/.env must give 403 or 404. The
+               `.htaccess` here locks this folder on Apache when the document
+               root is wrong; other web servers need the right one.
             3. Rename `.env.live` to `.env` and fill it in. A website that runs
                already keeps its own `.env`. Mails go out over the SMTP server
                of the backend (Settings, Email), else with mail() of PHP; send

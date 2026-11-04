@@ -103,6 +103,11 @@ backups) and `public/media/`, for the first upload of a website made in
 the workbench. Set `app.url` in `config/app.yaml` before; the build warns
 without it.
 
+The web server must show `public/`, never the folder itself: it holds
+`.env` and the database. A `.htaccess` in the folder locks it on Apache
+when the document root is wrong (from `skeleton/`, else the build adds
+one). After the upload, `https://<address>/.env` must give 403 or 404.
+
 ## License
 
 MIT

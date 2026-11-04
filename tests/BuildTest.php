@@ -103,6 +103,24 @@ final class BuildTest extends TestCase
         $builder->build(new Project('site.acme', 'site', $project, 'Acme', 'Site'), $this->folder . '/builds');
     }
 
+    public function testLocksTheFolderOfTheWebsiteForAWrongDocumentRoot(): void
+    {
+        $builder = new Builder(static fn(): int => 0, static fn(): int => 0, static function (): void {});
+        $project = $this->folder . '/Acme/Site';
+        Folder::project($project);
+
+        $build = $builder->build(new Project('site.acme', 'site', $project, 'Acme', 'Site'), $this->folder . '/builds');
+
+        self::assertSame(Builder::GUARD, file_get_contents($build['folder'] . '/.htaccess'), 'Nothing outside public/ is served, not .env, not the database (decision 0270).');
+        self::assertStringContainsString('must give 403 or 404', (string) file_get_contents($build['folder'] . '/DEPLOY.md'));
+        self::assertSame(Builder::GUARD, file_get_contents(\dirname(__DIR__, 4) . '/skeleton/.htaccess'), 'New projects have the same.');
+
+        // A project with one of its own keeps it.
+        Folder::write($project . '/.htaccess', "Require all denied\n");
+        $build = $builder->build(new Project('site.acme', 'site', $project, 'Acme', 'Site'), $this->folder . '/builds', now: new \DateTimeImmutable('2026-01-01'));
+        self::assertSame("Require all denied\n", file_get_contents($build['folder'] . '/.htaccess'));
+    }
+
     /**
      * @return list<string>
      */
