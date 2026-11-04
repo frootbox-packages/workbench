@@ -78,6 +78,7 @@ vendor/bin/workbench migrate holl24           # or --all
 vendor/bin/workbench check                    # before a release: packages, blocks, migrations, pages
 vendor/bin/workbench update                   # new packages of the monorepo, composer update
 vendor/bin/workbench serve                    # without MAMP
+vendor/bin/workbench build holl24 --zip       # a folder to upload, see below
 ```
 
 With open migrations a project shows a notice with a button instead of
@@ -85,6 +86,22 @@ its pages; the database is backed up to `storage/backups/` first.
 `new` and `run … install` take the superuser from `FROOTBOX_ADMIN_EMAIL`,
 `FROOTBOX_ADMIN_NAME` and `FROOTBOX_ADMIN_PASSWORD`, from the shell or
 from `sandbox.env` of the monorepo.
+
+## Building a website to upload
+
+`build` turns a project into a folder under `var/workbench/builds/` that
+runs on a webspace as it is: its own `vendor/` with the packages copied
+instead of linked, no `require-dev`, the files of the extensions
+published, no symlinks, so FTP works. Composer leaves out what the
+`.gitattributes` of a package mark `export-ignore`. Next to it are
+`.env.live`, to rename to `.env` on the server, and `DEPLOY.md` with the
+steps there. `--zip` adds a ZIP file.
+
+The build holds code only, so an update never replaces the database or
+the media of a running website. `--with-content` adds `storage/` (without
+backups) and `public/media/`, for the first upload of a website made in
+the workbench. Set `app.url` in `config/app.yaml` before; the build warns
+without it.
 
 ## License
 

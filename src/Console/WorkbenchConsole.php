@@ -69,6 +69,7 @@ final class WorkbenchConsole
             new CheckCommand($workbench, $binary),
             new CheckProjectCommand($workbench),
             new ServeCommand($workbench),
+            new BuildCommand($workbench),
         ]);
 
         return $console->run(new ArgvInput($argv), $output);
