@@ -224,8 +224,11 @@ final readonly class Builder
             # DATABASE_URL="mysql://user:password@localhost:3306/database?serverVersion=8.0"
             DATABASE_URL='{$database}'
 
-            # For forms and notifications, e.g.:
-            # MAILER_DSN="smtp://user:password@smtp.example.org:587"
+            # Mails of forms and notifications go out over the SMTP server of the
+            # backend (Settings, Email), else with mail() of PHP. MAILER_DSN goes
+            # before both, e.g. smtp://user:password@smtp.example.org:587
+            # (special characters in the password URL-encoded).
+            # MAILER_DSN=native://default
 
             ENV;
     }
@@ -262,7 +265,9 @@ final readonly class Builder
             2. Upload the folder. The web server shows `public/`, it is the
                document root.
             3. Rename `.env.live` to `.env` and fill it in. A website that runs
-               already keeps its own `.env`.
+               already keeps its own `.env`. Mails go out over the SMTP server
+               of the backend (Settings, Email), else with mail() of PHP; send
+               a test mail there after the upload.
             4. The web server may write to `storage/` and `var/`.
             5. A cron job runs `php bin/frootbox schedule:run` every 5 minutes:
                scheduled publishing, backups, statistics, mails.
