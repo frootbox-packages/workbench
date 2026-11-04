@@ -99,6 +99,7 @@ final class WorkbenchTest extends TestCase
         self::assertStringContainsString('"url": "extensions/*"', (string) file_get_contents($project->path . '/composer.json'));
         self::assertFileExists($project->path . '/.htaccess');
         self::assertFileDoesNotExist($project->path . '/LICENSE', 'The website belongs to its author, not under the license of Frootbox.');
+        self::assertFileExists($project->path . '/AGENTS.md', 'An agent knows how to build the website from the start.');
 
         $start = $this->request('http://fb.localhost/');
         self::assertSame(200, $start->getStatusCode());
