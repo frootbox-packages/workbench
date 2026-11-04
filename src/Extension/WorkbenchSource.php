@@ -119,7 +119,7 @@ final class WorkbenchSource implements ExtensionSource
             }
 
             if (is_file($package->path . '/' . ExtensionPackage::MANIFEST)) {
-                $packages[] = ExtensionPackage::fromManifest($package->name, $package->path, $package->requires, $package->psr4, $isLocal);
+                $packages[] = ExtensionPackage::fromManifest($package->name, $package->path, $package->requires, $package->psr4, $isLocal, $package->version);
             }
         }
 

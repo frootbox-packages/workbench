@@ -17,6 +17,7 @@ final readonly class ComposerPackage
      * @param list<string>                $requires Names of required packages, platform packages included
      * @param array<string, list<string>> $psr4     Namespace prefix => directories, relative to $path
      * @param list<string>                $provides Names it provides or replaces
+     * @param string|null                 $version  pretty_version of installed.json or version of composer.json
      */
     public function __construct(
         public string $name,
@@ -24,6 +25,7 @@ final readonly class ComposerPackage
         public array $requires,
         public array $psr4,
         public array $provides = [],
+        public ?string $version = null,
     ) {}
 
     /**
@@ -50,7 +52,13 @@ final readonly class ComposerPackage
             self::names($data['require'] ?? null),
             $psr4,
             [...self::names($data['provide'] ?? null), ...self::names($data['replace'] ?? null)],
+            self::version($data['pretty_version'] ?? $data['version'] ?? null),
         );
+    }
+
+    private static function version(mixed $version): ?string
+    {
+        return \is_string($version) && '' !== $version ? $version : null;
     }
 
     /**
