@@ -14,12 +14,25 @@ php path/to/frootbox2/packages/tools/workbench/bin/workbench init ~/Sites/frootb
 cd ~/Sites/frootbox-sites && composer install
 ```
 
-`init` writes `workbench.yaml`, `composer.json`, `public/index.php` and
-`.gitignore` lines. Then create a host in MAMP PRO (or any web server) with
-PHP 8.5, the name `fb.localhost`, the alias `*.fb.localhost` and the
-document root `public/` of that folder. Browsers resolve `*.localhost`
-without further setup. Without a web server, `vendor/bin/workbench serve`
-runs the web server of PHP on port 8300.
+`init` writes `workbench.yaml`, `composer.json`, `public/index.php`,
+`public/.htaccess` and `.gitignore` lines. Then create a host in a web
+server with PHP 8.5, the name `fb.localhost`, the alias `*.fb.localhost`
+and the document root `public/` of that folder. Browsers resolve
+`*.localhost` without further setup. Without a web server,
+`vendor/bin/workbench serve` runs the web server of PHP on port 8300.
+
+In MAMP PRO:
+
+1. Hosts, `+`: name `fb.localhost`, document root
+   `~/Sites/frootbox-sites/public`, PHP 8.5.
+2. Tab SSL: off. MAMP makes a certificate for `fb.localhost` only, so
+   every website would show a warning, and it redirects HTTP to HTTPS.
+3. Tab Web Server, additional parameters for `<VirtualHost>`:
+   `ServerAlias *.fb.localhost`. The list of aliases in the tab General
+   does not take `*`. AllowOverride stays `All` for `.htaccess`.
+4. Save. With the ports of MAMP the addresses carry `:8888`, e.g.
+   `http://fb.localhost:8888`; the links of the workbench leave the port
+   out.
 
 ## Addresses
 

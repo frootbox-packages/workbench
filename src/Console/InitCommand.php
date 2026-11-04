@@ -21,7 +21,7 @@ use Symfony\Component\Console\Style\SymfonyStyle;
 
 /**
  * Makes a folder the workbench: workbench.yaml, composer.json,
- * public/index.php and .gitignore. Files that exist are kept, composer.json
+ * public/index.php, public/.htaccess and .gitignore. Files that exist are kept, composer.json
  * only gets what is missing.
  */
 #[AsCommand(name: 'init', description: 'Makes a folder the workbench, e.g. the folder with all websites')]
@@ -82,6 +82,12 @@ final class InitCommand extends Command
             $written[] = 'public/index.php';
         }
 
+        // Apache sends every request that is not a file to index.php, like
+        // in a website. Without it /cms and every page answer 404.
+        if (self::create($root . '/public/.htaccess', (string) file_get_contents($monorepo . '/skeleton/public/.htaccess'))) {
+            $written[] = 'public/.htaccess';
+        }
+
         if (new CentralComposer($root, $monorepo)->write()) {
             $written[] = 'composer.json';
         }
@@ -94,9 +100,10 @@ final class InitCommand extends Command
         $io->text([
             'Next:',
             \sprintf('  cd %s && composer install', $root),
-            \sprintf('  In MAMP PRO a host %s with PHP 8.5, the alias *.%s and the document root', $domain, $domain),
+            \sprintf('  In MAMP PRO a host %s with PHP 8.5, without SSL, and the document root', $domain),
             \sprintf('  %s/public', $root),
-            '  Then open http://' . $domain,
+            \sprintf('  Under Web Server, additional parameters: ServerAlias *.%s', $domain),
+            \sprintf('  Then open http://%s (with :8888 while MAMP uses its own ports)', $domain),
         ]);
 
         return Command::SUCCESS;
