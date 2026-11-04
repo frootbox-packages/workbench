@@ -193,7 +193,7 @@ final class NewCommand extends Command
             \assert($item instanceof SplFileInfo);
             $relative = substr($item->getPathname(), \strlen($from) + 1);
 
-            if (1 === preg_match('#^(vendor|\.env|LICENSE|\.gitattributes)(/|$)#', $relative)) {
+            if (1 === preg_match('#^(vendor|\.env|LICENSE|README\.md|\.gitattributes)(/|$)#', $relative)) {
                 continue;
             }
 
