@@ -1,7 +1,7 @@
 # Frootbox Workbench
 
 Runs many local Frootbox websites from one host and one `vendor/` with the
-current packages of the monorepo (decisions 0098 and 0254). A website in
+current packages of the monorepo. A website in
 the workbench is a normal project folder (`composer.json`, `config/`,
 `extensions/`, `.env`, `storage/`) without a `vendor/` of its own. Live,
 every website keeps its own installation with the versions of its
@@ -107,6 +107,12 @@ The web server must show `public/`, never the folder itself: it holds
 `.env` and the database. A `.htaccess` in the folder locks it on Apache
 when the document root is wrong (from `skeleton/`, else the build adds
 one). After the upload, `https://<address>/.env` must give 403 or 404.
+
+## Source and issues
+
+This package is developed in the [Frootbox monorepo](https://github.com/Frootbox/frootbox)
+and mirrored here read-only. Questions, bugs and ideas go there, see the
+[documentation](https://github.com/Frootbox/frootbox/tree/main/documentation).
 
 ## License
 
