@@ -230,6 +230,12 @@ final readonly class Builder
             # (special characters in the password URL-encoded).
             # MAILER_DSN=native://default
 
+            # Media and files from forms in S3-compatible buckets instead of the
+            # web space, with frootbox/storage-s3 (decision 0268); then run
+            # php bin/frootbox storage:push and storage:check.
+            # STORAGE_DSN="s3://key:secret@host/private-bucket?region=…"
+            # PUBLIC_STORAGE_DSN="s3://key:secret@host/public-bucket?region=…&url=https://media.example.org"
+
             ENV;
     }
 
