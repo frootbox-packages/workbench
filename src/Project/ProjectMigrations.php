@@ -8,22 +8,20 @@ declare(strict_types=1);
 
 namespace Frootbox\Workbench\Project;
 
-use Doctrine\DBAL\Connection;
 use Frootbox\Core\Application;
+use Frootbox\Core\Backup\BackupManager;
+use Frootbox\Core\Backup\BackupReason;
 use Frootbox\Core\Database\Migrator;
 use RuntimeException;
 
 /**
- * Migrations of a project that the current core brings (decision 0254).
- * Before migrating an SQLite database, a copy goes to storage/backups/
- * like the backups of decision 0183.
+ * Migrations of a project that the current core brings (decision 0254),
+ * after a backup in storage/backups/ like bin/frootbox migrate
+ * (decision 0183).
  */
 final readonly class ProjectMigrations
 {
-    public function __construct(
-        private Application $application,
-        private string $projectRoot,
-    ) {}
+    public function __construct(private Application $application) {}
 
     public function pending(): int
     {
@@ -31,65 +29,50 @@ final readonly class ProjectMigrations
     }
 
     /**
-     * Whether the database is a file that is copied before migrating.
+     * Whether there is a database to back up before migrating.
      */
     public function copies(): bool
     {
-        return null !== $this->sqliteFile();
+        return $this->backups()->available();
     }
 
     /**
-     * Copies an SQLite database and runs the open migrations.
+     * Backs up the database and runs the open migrations.
      *
-     * @return array{ran: list<string>, backup: string|null} The versions and the copy, relative to the project
+     * @return array{ran: list<string>, backup: string|null} The versions and the backup, relative to the project
      */
     public function migrate(): array
     {
         $backup = null;
 
-        if (null !== $this->sqliteFile() && $this->pending() > 0) {
-            $directory = $this->projectRoot . '/storage/backups';
-
-            if (!is_dir($directory) && !mkdir($directory, 0o777, true) && !is_dir($directory)) {
-                throw new RuntimeException(\sprintf('Could not create %s.', $directory));
-            }
-
-            $backup = 'storage/backups/' . date('Y-m-d-His') . '-migrate.sqlite';
-            // A consistent copy even while the file is open, unlike copy().
-            $this->connection()->executeStatement('VACUUM INTO ?', [$this->projectRoot . '/' . $backup]);
+        if ($this->copies() && $this->pending() > 0) {
+            $backup = 'storage/backups/' . $this->backups()->create(BackupReason::Migrate)->name;
         }
 
         return ['ran' => $this->migrator()->migrate(), 'backup' => $backup];
     }
 
-    private function sqliteFile(): ?string
-    {
-        $params = $this->connection()->getParams();
-        $driver = $params['driver'] ?? null;
-        $path = $params['path'] ?? null;
-
-        return \in_array($driver, ['pdo_sqlite', 'sqlite3'], true) && \is_string($path) && ':memory:' !== $path && true !== ($params['memory'] ?? false) ? $path : null;
-    }
-
     private function migrator(): Migrator
     {
-        $migrator = $this->application->container()->get(Migrator::class);
-
-        if (!$migrator instanceof Migrator) {
-            throw new RuntimeException('The container has no migrator.');
-        }
-
-        return $migrator;
+        return self::service($this->application, Migrator::class);
     }
 
-    private function connection(): Connection
+    private function backups(): BackupManager
     {
-        $connection = $this->application->container()->get(Connection::class);
+        return self::service($this->application, BackupManager::class);
+    }
 
-        if (!$connection instanceof Connection) {
-            throw new RuntimeException('The container has no database connection.');
-        }
+    /**
+     * @template T of object
+     *
+     * @param class-string<T> $class
+     *
+     * @return T
+     */
+    private static function service(Application $application, string $class): object
+    {
+        $service = $application->container()->get($class);
 
-        return $connection;
+        return $service instanceof $class ? $service : throw new RuntimeException(\sprintf('The container has no %s.', $class));
     }
 }

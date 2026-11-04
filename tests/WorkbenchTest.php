@@ -141,9 +141,9 @@ final class WorkbenchTest extends TestCase
         $done = $this->request('http://demo.fb.localhost/_workbench/migrate', 'POST', ['Origin' => 'http://demo.fb.localhost']);
         self::assertSame(303, $done->getStatusCode());
         self::assertSame('/', $done->getHeaderLine('Location'));
-        $backups = glob($project->path . '/storage/backups/*-migrate.sqlite');
+        $backups = glob($project->path . '/storage/backups/*-migrate.sqlite.gz');
         self::assertIsArray($backups);
-        self::assertCount(1, $backups, 'A copy before migrating.');
+        self::assertCount(1, $backups, 'A backup before migrating.');
         self::assertSame(200, $this->request('http://demo.fb.localhost/')->getStatusCode());
 
         $check = new ProjectCheck(Workbench::fromRoot(self::$root))->run($project);

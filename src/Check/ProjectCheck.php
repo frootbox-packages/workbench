@@ -55,7 +55,7 @@ final readonly class ProjectCheck
 
         try {
             $application = $this->workbench->application($project);
-            $pending = new ProjectMigrations($application, $project->path)->pending();
+            $pending = new ProjectMigrations($application)->pending();
         } catch (Throwable $error) {
             $problems[] = 'Does not start: ' . $error->getMessage();
 

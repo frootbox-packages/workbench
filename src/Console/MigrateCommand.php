@@ -62,7 +62,7 @@ final class MigrateCommand extends Command
     private function migrate(Workbench $workbench, Project $project, OutputInterface $output): bool
     {
         try {
-            $result = new ProjectMigrations($workbench->application($project), $project->path)->migrate();
+            $result = new ProjectMigrations($workbench->application($project))->migrate();
         } catch (Throwable $error) {
             $output->writeln(\sprintf('<error>%s: %s</error>', $project->name, $error->getMessage()));
 
@@ -73,7 +73,7 @@ final class MigrateCommand extends Command
             '%s: %d migrations ran%s',
             $project->name,
             \count($result['ran']),
-            null === $result['backup'] ? '' : ', copy in ' . $result['backup'],
+            null === $result['backup'] ? '' : ', backup in ' . $result['backup'],
         ));
 
         return true;

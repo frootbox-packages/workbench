@@ -66,8 +66,8 @@ final readonly class Pages
     public function migrations(Project $project, int $pending, bool $copies): ResponseInterface
     {
         $copy = $copies
-            ? 'A copy of the database goes to <code>storage/backups/</code> first.'
-            : 'The database is no file, so <strong>no copy</strong> is made. Back it up yourself if it matters.';
+            ? 'A backup of the database goes to <code>storage/backups/</code> first.'
+            : 'There is no database to back up, so <strong>no backup</strong> is made.';
 
         return self::page(503, 'Migrations open · ' . $project->title(), \sprintf(
             '<h1>%s</h1><p>The current core brings <strong>%d %s</strong> this database has not run yet. %s</p>'

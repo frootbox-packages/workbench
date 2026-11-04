@@ -83,7 +83,7 @@ final readonly class Front
      */
     private function migrations(ServerRequestInterface $request, Project $project, Application $application, Pages $pages): ?ResponseInterface
     {
-        $migrations = new ProjectMigrations($application, $project->path);
+        $migrations = new ProjectMigrations($application);
 
         try {
             $pending = $migrations->pending();

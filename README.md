@@ -67,7 +67,7 @@ vendor/bin/workbench serve                    # without MAMP
 ```
 
 With open migrations a project shows a notice with a button instead of
-its pages; an SQLite database is copied to `storage/backups/` first.
+its pages; the database is backed up to `storage/backups/` first.
 `new` and `run … install` take the superuser from `FROOTBOX_ADMIN_EMAIL`,
 `FROOTBOX_ADMIN_NAME` and `FROOTBOX_ADMIN_PASSWORD`, from the shell or
 from `sandbox.env` of the monorepo.
