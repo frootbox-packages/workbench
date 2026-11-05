@@ -9,6 +9,7 @@ declare(strict_types=1);
 namespace Frootbox\Workbench\Console;
 
 use Frootbox\Core\Application;
+use Frootbox\Workbench\LocalTimeZone;
 use Frootbox\Workbench\Workbench;
 use RuntimeException;
 use Symfony\Component\Console\Application as ConsoleApplication;
@@ -25,6 +26,7 @@ final class WorkbenchConsole
      */
     public static function run(array $argv, string $binary): int
     {
+        LocalTimeZone::apply();
         $output = new ConsoleOutput();
         $root = Workbench::locate((string) getcwd());
         $workbench = static function () use ($root): Workbench {

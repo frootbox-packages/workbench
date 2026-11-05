@@ -110,6 +110,7 @@ final readonly class Workbench
      */
     public function run(): void
     {
+        LocalTimeZone::apply();
         $factory = new Psr17Factory();
         $request = new ServerRequestCreator($factory, $factory, $factory, $factory)->fromGlobals();
         $answer = new Front($this)->dispatch($request);
