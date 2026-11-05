@@ -121,6 +121,28 @@ final class BuildTest extends TestCase
         self::assertSame("Require all denied\n", file_get_contents($build['folder'] . '/.htaccess'));
     }
 
+    public function testACopyWithContentLeavesTheConnectionToTheHubOut(): void
+    {
+        $project = $this->folder . '/Acme/Site';
+        Folder::project($project);
+        $calls = [];
+        $builder = new Builder(static fn(): int => 0, static function (string $folder, array $arguments) use (&$calls): int {
+            $calls[] = $arguments;
+
+            return 0;
+        }, static function (): void {});
+
+        $builder->build(new Project('site.acme', 'site', $project, 'Acme', 'Site'), $this->folder . '/builds');
+        self::assertNotContains(['hub:disconnect', '--local', '--forget-key'], $calls, 'Without content there is no connection.');
+
+        $builder->build(new Project('site.acme', 'site', $project, 'Acme', 'Site'), $this->folder . '/builds', withContent: true, now: new \DateTimeImmutable('2026-01-01'));
+        self::assertNotContains(['hub:disconnect', '--local', '--forget-key'], $calls, 'Nor without the database in storage/, e.g. with MySQL.');
+
+        Folder::write($project . '/storage/database.sqlite', '');
+        $builder->build(new Project('site.acme', 'site', $project, 'Acme', 'Site'), $this->folder . '/builds', withContent: true, now: new \DateTimeImmutable('2026-01-02'));
+        self::assertContains(['hub:disconnect', '--local', '--forget-key'], $calls, 'Two installations never share the key of the website.');
+    }
+
     /**
      * @return list<string>
      */

@@ -118,6 +118,15 @@ final readonly class Builder
             throw new RuntimeException('assets:publish failed, see above. The unfinished build stays in ' . $folder);
         }
 
+        // The connection to the hub belongs to this installation, not to a copy (decision 0284).
+        if ($withContent && is_file($folder . '/storage/database.sqlite')) {
+            ($this->say)('Leaving out the connection to the hub');
+
+            if (0 !== ($this->console)($folder, ['hub:disconnect', '--local', '--forget-key'], $live)) {
+                throw new RuntimeException('hub:disconnect failed, see above. The unfinished build stays in ' . $folder);
+            }
+        }
+
         // The packages of the project run from their copy in vendor/.
         self::remove($folder . '/extensions');
 
