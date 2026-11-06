@@ -193,6 +193,32 @@ final class BuildTest extends TestCase
         self::assertFileExists((string) $diff['zip']);
     }
 
+    public function testTheLatestDiffAlwaysHasTheSameFolder(): void
+    {
+        $builds = $this->folder . '/builds';
+        $project = new Project('site.acme', 'site', $this->folder . '/Acme/Site', 'Acme', 'Site');
+        $latest = Builder::latest($project, $builds);
+        self::assertSame($builds . '/site-acme-latest', $latest, 'A fixed folder for the FTP client.');
+
+        Folder::write($builds . '/site-acme-20261106-091337/vendor/a.php', 'a');
+        Folder::write($builds . '/site-acme-20261106-091337/vendor/gone.php', 'gone');
+        Folder::write($builds . '/site-acme-20261106-093006/vendor/a.php', 'b');
+        Builder::diff($builds . '/site-acme-20261106-091337', $builds . '/site-acme-20261106-093006', zip: true, fixed: $latest);
+        self::assertSame(['vendor/a.php'], self::files($latest));
+        self::assertFileExists($latest . '.deleted.txt');
+
+        Folder::write($builds . '/site-acme-20261106-101003/vendor/a.php', 'b');
+        Folder::write($builds . '/site-acme-20261106-101003/vendor/c.php', 'c');
+        $diff = Builder::diff($builds . '/site-acme-20261106-093006', $builds . '/site-acme-20261106-101003', zip: true, fixed: $latest);
+        self::assertSame($latest, $diff['folder']);
+        self::assertSame(['vendor/c.php'], self::files($latest), 'Replaced, nothing of the last upload is left.');
+        self::assertFileDoesNotExist($latest . '.deleted.txt');
+        self::assertSame($latest . '.zip', $diff['zip']);
+
+        $this->expectExceptionMessage('only holds the last upload');
+        Builder::earlier($project, $builds, 'site-acme-latest');
+    }
+
     public function testADiffNeedsABuildOfTheSameProject(): void
     {
         $project = new Project('site.acme', 'site', $this->folder . '/Acme/Site', 'Acme', 'Site');

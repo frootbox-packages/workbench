@@ -118,6 +118,12 @@ then delete `var/cache/` on the server and run the update under
 Extensions in the backend, or `bin/frootbox migrate` and `cache:clear`
 with a console.
 
+With `--latest` the folder with what changed is always
+`<project>-latest/` (with its ZIP file and list), replaced on every
+build, so an FTP client can keep it as a fixed local folder. Let the
+client only upload, never mirror: the folder holds a few files, a
+mirror would delete the rest of the website.
+
 The web server must show `public/`, never the folder itself: it holds
 `.env` and the database. A `.htaccess` in the folder locks it on Apache
 when the document root is wrong (from `skeleton/`, else the build adds

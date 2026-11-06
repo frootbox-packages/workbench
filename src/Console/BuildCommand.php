@@ -42,7 +42,8 @@ final class BuildCommand extends Command
             ->addArgument('project', InputArgument::REQUIRED, 'Name of the project, e.g. holl24')
             ->addOption('with-content', null, InputOption::VALUE_NONE, 'Also the database and the media of storage/ and public/media/, for the first upload')
             ->addOption('zip', null, InputOption::VALUE_NONE, 'Also a ZIP file next to the folder')
-            ->addOption('since', null, InputOption::VALUE_REQUIRED, 'Also a folder with only what changed since an earlier build, by its name as in BUILD on the server');
+            ->addOption('since', null, InputOption::VALUE_REQUIRED, 'Also a folder with only what changed since an earlier build, by its name as in BUILD on the server')
+            ->addOption('latest', null, InputOption::VALUE_NONE, 'With --since: the folder with what changed is always <project>-latest, replaced on every build');
     }
 
     protected function execute(InputInterface $input, OutputInterface $output): int
@@ -68,11 +69,19 @@ final class BuildCommand extends Command
         $since = $input->getOption('since');
         $builds = $workbench->config->var('builds');
 
+        $latest = true === $input->getOption('latest');
+
+        if ($latest && !\is_string($since)) {
+            $output->writeln('<error>--latest needs --since with the build on the server.</error>');
+
+            return Command::INVALID;
+        }
+
         try {
             // Checked first, so a wrong name does not wait for a whole build.
             $earlier = \is_string($since) ? Builder::earlier($project, $builds, $since) : null;
             $build = $builder->build($project, $builds, true === $input->getOption('with-content'), true === $input->getOption('zip'));
-            $diff = null === $earlier ? null : Builder::diff($earlier, $build['folder'], true === $input->getOption('zip'));
+            $diff = null === $earlier ? null : Builder::diff($earlier, $build['folder'], true === $input->getOption('zip'), $latest ? Builder::latest($project, $builds) : null);
         } catch (RuntimeException $error) {
             $output->writeln('<error>' . $error->getMessage() . '</error>');
 

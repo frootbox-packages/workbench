@@ -351,11 +351,24 @@ final readonly class Builder
             throw new RuntimeException(\sprintf('%s is no build of %s.', basename($folder), $project->title()));
         }
 
+        if ($folder === self::latest($project, $builds) || str_ends_with(basename($folder), '-latest')) {
+            throw new RuntimeException(\sprintf('%s only holds the last upload. Name the build in its file BUILD.', basename($folder)));
+        }
+
         if (!is_dir($folder)) {
             throw new RuntimeException(\sprintf('There is no build %s. The diff needs the folder of the build that runs on the server.', $folder));
         }
 
         return $folder;
+    }
+
+    /**
+     * A folder with the same name for every upload of a project, e.g. for
+     * a fixed folder in an FTP client.
+     */
+    public static function latest(Project $project, string $builds): string
+    {
+        return $builds . '/' . self::prefix($project) . 'latest';
     }
 
     private static function prefix(Project $project): string
@@ -366,11 +379,12 @@ final readonly class Builder
     /**
      * Only what is new or changed in a build since an earlier one, for a
      * small upload: <build>-since-<time of the earlier>/, and next to it a
-     * list of the files that are gone.
+     * list of the files that are gone. A fixed folder instead, e.g. the one
+     * of latest(), is replaced with its ZIP file and list.
      *
      * @return array{folder: string, zip: string|null, files: int, deleted: list<string>, list: string|null}
      */
-    public static function diff(string $earlier, string $build, bool $zip = false): array
+    public static function diff(string $earlier, string $build, bool $zip = false, ?string $fixed = null): array
     {
         foreach ([$earlier, $build] as $folder) {
             if (!is_dir($folder)) {
@@ -379,9 +393,13 @@ final readonly class Builder
         }
 
         $since = 1 === preg_match('/\d{8}-\d{6}$/', basename($earlier), $match) ? $match[0] : basename($earlier);
-        $target = $build . '-since-' . $since;
+        $target = $fixed ?? $build . '-since-' . $since;
 
-        if (file_exists($target)) {
+        if (null !== $fixed) {
+            foreach ([$target, $target . '.zip', $target . '.deleted.txt'] as $old) {
+                self::remove($old);
+            }
+        } elseif (file_exists($target)) {
             throw new RuntimeException(\sprintf('%s exists already.', $target));
         }
 
