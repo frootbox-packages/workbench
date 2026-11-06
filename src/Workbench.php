@@ -10,6 +10,7 @@ namespace Frootbox\Workbench;
 
 use Frootbox\Core\Application;
 use Frootbox\Core\Http\ResponseEmitter;
+use Frootbox\Workbench\Build\BuildRuns;
 use Frootbox\Workbench\Extension\CentralPackages;
 use Frootbox\Workbench\Extension\WorkbenchSource;
 use Frootbox\Workbench\Http\Front;
@@ -69,7 +70,7 @@ final readonly class Workbench
 
     public function source(Project $project): WorkbenchSource
     {
-        return new WorkbenchSource($this->central, $project->path);
+        return new WorkbenchSource($this->central, $project->path, tools: true);
     }
 
     /**
@@ -86,7 +87,8 @@ final readonly class Workbench
      * The environment for a project: real variables win over .env in
      * Frootbox, so those of the project's .env and PROJECT_VARIABLES are
      * left out. Otherwise a DATABASE_URL of the shell would point every
-     * project to one database.
+     * project to one database. The build in the backend learns where it
+     * runs from BuildRuns::ROOT and ::PROJECT (decision 0291).
      *
      * @param array<string, string>|null $base Defaults to the real environment (getenv())
      *
@@ -102,7 +104,7 @@ final readonly class Workbench
             unset($environment[(string) $name]);
         }
 
-        return $environment;
+        return [...$environment, BuildRuns::ROOT => $this->config->root, BuildRuns::PROJECT => $project->name];
     }
 
     /**

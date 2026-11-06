@@ -1,0 +1,87 @@
+{#- The screen "Build" of a website in the workbench (decision 0291): builds it for upload and shows the last build. -#}
+{% extends '@backend/layout.twig' %}
+{% import '@backend/ui.twig' as ui %}
+
+{% block title %}{{ t('Build') }}{% endblock %}
+
+{% block content %}
+<div class="fb-stack fb-stack--lg">
+    <header class="fb-page-header">
+        <div class="fb-page-header__text">
+            <h1 class="fb-heading-1" tabindex="-1" data-fb-focus>{{ t('Build') }}</h1>
+            <p class="fb-muted">{{ t('Builds this website as a folder to upload by FTP, with its own vendor/. Only in the workbench, the website on the server has no such screen.') }}</p>
+        </div>
+    </header>
+
+    <section class="fb-card" id="build-form" aria-labelledby="build-form-title">
+        <div class="fb-card__header">
+            <h2 class="fb-heading-4" id="build-form-title">{{ t('New build') }}</h2>
+        </div>
+        <div class="fb-card__body">
+            <fb-form action="frootbox/workbench/build.start" refresh="build-form build-run" done="{{ t('The build has started.') }}">
+                <form novalidate class="fb-stack">
+                    {{ ui.field({
+                        label: t('Compare with the build on the server'),
+                        name: 'since',
+                        value: run.suggestion ?? '',
+                        optional: true,
+                        hint: t('The build always runs here in the workbench. This field only says which build runs on the server now (its file BUILD), so the folder {folder} gets only what changed since. Empty for a full build, e.g. for the first upload.', {folder: run.latest}),
+                        attrs: {autocomplete: 'off', spellcheck: 'false'},
+                    }) }}
+                    <div class="fb-form__actions">
+                        {{ ui.button({label: t('Start the build'), type: 'submit', icon: 'arrow-up', disabled: run.state == 'running'}) }}
+                        {% if run.state == 'running' %}<p class="fb-form__note">{{ t('A build is running.') }}</p>{% endif %}
+                    </div>
+                </form>
+            </fb-form>
+        </div>
+    </section>
+
+    <section class="fb-card" id="build-run" aria-labelledby="build-run-title"
+        {%- if run.state == 'running' %} hx-get="{{ path('frootbox.workbench.build') }}" hx-trigger="every 3s" hx-select="#build-run" hx-swap="outerHTML"{% endif %}>
+        <div class="fb-card__header">
+            <h2 class="fb-heading-4" id="build-run-title">{{ t('Last build') }}</h2>
+            {%- set states = {running: ['changed', t('Running')], done: ['published', t('Done')], failed: ['danger', t('Failed')]} %}
+            {% if states[run.state] is defined %}{{ ui.badge(states[run.state][0], states[run.state][1]) }}{% endif %}
+        </div>
+        <div class="fb-card__body fb-stack">
+            {% if run.state == 'none' %}
+            {{ ui.empty({icon: 'arrow-up', title: t('No build from here yet'), text: t('The builds lie in {folder}.', {folder: run.builds})}) }}
+            {% else %}
+            <p class="fb-muted">
+                {{ t('Started') }}: {{ ui.time(run.startedAt) }}
+                · {{ run.since ? t('What changed since {build}', {build: run.since}) : t('Full build') }}
+            </p>
+            {% if run.state == 'done' %}
+            {{ ui.alert({tone: 'success', title: run.diff ? t('Upload the folder {folder}', {folder: run.diff}) : t('Upload the folder {folder}', {folder: run.build}), text: t('In {folder}. Only upload, never mirror: the server keeps its database and media. Then clear the cache and update the database under Extensions on the server.', {folder: run.builds})}) }}
+            {% set figures = [{label: t('Build'), value: run.build}] %}
+            {% if run.files is not null %}{% set figures = figures|merge([{label: t('Changed files'), value: ui.number(run.files)}]) %}{% endif %}
+            {% if run.gone is not null %}{% set figures = figures|merge([{label: t('Files gone'), value: ui.number(run.gone), note: t('Listed in the folder, may be deleted on the server')}]) %}{% endif %}
+            {{ ui.figures(figures) }}
+            {% if run.build and run.server == run.build %}
+            <p class="fb-muted">{{ t('Noted as on the server. The next build makes its diff from it.') }}</p>
+            {% elseif run.build %}
+            <fb-form action="frootbox/workbench/build.mark-uploaded" refresh="build-form build-run" done="{{ t('Noted. The next build makes its diff from {build}.', {build: run.build}) }}">
+                <form novalidate class="fb-stack fb-stack--sm">
+                    <input type="hidden" name="build" value="{{ run.build }}">
+                    <p class="fb-muted">{{ t('After the upload: the next build then makes its diff from this one. Until then every build starts from {build}, so building again loses nothing.', {build: run.suggestion ?? run.since ?? '–'}) }}</p>
+                    <div>{{ ui.button({label: t('Uploaded'), type: 'submit', variant: 'outline', icon: 'check'}) }}</div>
+                </form>
+            </fb-form>
+            {% endif %}
+            {% elseif run.state == 'failed' %}
+            {{ ui.alert({tone: 'danger', title: t('The build failed.'), text: t('The output below says why.')}) }}
+            {% else %}
+            {{ ui.alert({tone: 'info', title: t('The build is running.'), text: t('Composer installs the packages, that takes a minute. This page updates itself.')}) }}
+            {% endif %}
+            {% if run.output is not empty %}
+            <details class="fb-card fb-disclosure"{% if run.state == 'failed' %} open{% endif %}>
+                <summary class="fb-disclosure__summary">{{ t('Output') }}</summary>
+                <div class="fb-disclosure__body fb-prose"><pre><code>{{ run.output|join("\n") }}</code></pre></div>
+            </details>
+            {% endif %}
+            {% endif %}
+        </div>
+    </section>
+</div>
+{% endblock %}

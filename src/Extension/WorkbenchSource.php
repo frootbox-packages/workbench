@@ -25,9 +25,13 @@ final class WorkbenchSource implements ExtensionSource
     /** @var array{list<ExtensionPackage>, list<string>, array<string, ComposerPackage>}|null */
     private ?array $resolved = null;
 
+    /**
+     * @param bool $tools Adds the workbench itself, with the build in the backend (decision 0291)
+     */
     public function __construct(
         private readonly CentralPackages $central,
         private readonly string $projectRoot,
+        private readonly bool $tools = false,
     ) {}
 
     public function packages(): array
@@ -43,6 +47,10 @@ final class WorkbenchSource implements ExtensionSource
 
         foreach ($local as $package) {
             ProjectAutoloader::add($package->path, $package->psr4);
+        }
+
+        if ($this->tools && [] === array_filter($packages, static fn(ExtensionPackage $package): bool => WorkbenchExtension::PACKAGE === $package->name)) {
+            $packages[] = WorkbenchExtension::package();
         }
 
         return $packages;

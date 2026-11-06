@@ -9,6 +9,7 @@ declare(strict_types=1);
 namespace Frootbox\Workbench\Tests;
 
 use Frootbox\Core\Application;
+use Frootbox\Workbench\Build\BuildRuns;
 use Frootbox\Workbench\Check\ProjectCheck;
 use Frootbox\Workbench\Console\Environment;
 use Frootbox\Workbench\Console\NewCommand;
@@ -156,6 +157,27 @@ final class WorkbenchTest extends TestCase
         self::assertSame(0, $check['pending']);
     }
 
+    public function testTheBackendOffersTheBuildToSuperusers(): void
+    {
+        $url = 'http://demo.fb.localhost/cms/login';
+        $login = new ServerRequest('POST', $url, ['Sec-Fetch-Site' => 'same-origin'], null, '1.1', ['REMOTE_ADDR' => '192.0.2.1'])
+            ->withParsedBody(['email' => self::ADMIN['FROOTBOX_ADMIN_EMAIL'], 'password' => self::ADMIN['FROOTBOX_ADMIN_PASSWORD']]);
+        $answer = new Front(Workbench::fromRoot(self::$root))->dispatch($login);
+        $response = $answer instanceof Application ? $answer->handle($login) : $answer;
+        self::assertSame(303, $response->getStatusCode(), (string) $response->getBody());
+        self::assertSame(1, preg_match('/^frootbox_session=([^;]+);/', $response->getHeaderLine('Set-Cookie'), $match));
+
+        $screen = new ServerRequest('GET', 'http://demo.fb.localhost/cms/workbench')->withCookieParams(['frootbox_session' => rawurldecode($match[1])]);
+        $answer = new Front(Workbench::fromRoot(self::$root))->dispatch($screen);
+        $page = $answer instanceof Application ? $answer->handle($screen) : $answer;
+        $html = (string) $page->getBody();
+
+        self::assertSame(200, $page->getStatusCode(), $html);
+        self::assertStringContainsString('action="frootbox/workbench/build.start"', $html);
+        self::assertStringContainsString('demo-acme-latest', $html, 'The field names the fixed folder of the diff.');
+        self::assertStringContainsString('href="/cms/workbench"', $html, 'The screen is in the sidebar.');
+    }
+
     public function testCheckNamesMissingPackages(): void
     {
         $project = $this->project();
@@ -180,7 +202,7 @@ final class WorkbenchTest extends TestCase
         $workbench = Workbench::fromRoot(self::$root);
         $environment = $workbench->environment($this->project(), ['DATABASE_URL' => 'pdo-mysql://shared/db', 'APP_ENV' => 'prod', 'HOME' => '/home/jane']);
 
-        self::assertSame(['HOME' => '/home/jane'], $environment);
+        self::assertSame(['HOME' => '/home/jane', BuildRuns::ROOT => self::$root, BuildRuns::PROJECT => 'demo.acme'], $environment);
     }
 
     private function project(): Project

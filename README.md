@@ -124,6 +124,21 @@ build, so an FTP client can keep it as a fixed local folder. Let the
 client only upload, never mirror: the folder holds a few files, a
 mirror would delete the rest of the website.
 
+The same build runs from the backend of each website in the workbench:
+**Build** under Administration, for superusers. It starts `build
+<project> --zip --since <build> --latest` in the background (a full
+build with the field empty) and shows the folder to upload when it is
+done, with the output of the run. After the upload, **Uploaded** notes
+the new build as the one on the server (`<project>-server.txt`); only
+then does the next build compare with it. Until then the field keeps
+the base of the last run, so building again never makes a diff too
+small. Behind it are the actions `frootbox/workbench/build.start
+{since?}` and `frootbox/workbench/build.mark-uploaded {build}` and the
+query `frootbox/workbench/build.show`. The screen exists only in the
+workbench: the package has no `frootbox.yaml`, so a build or a server
+never has it. `var/workbench/builds/<project>-run.log` holds the output
+of the last run.
+
 The web server must show `public/`, never the folder itself: it holds
 `.env` and the database. A `.htaccess` in the folder locks it on Apache
 when the document root is wrong (from `skeleton/`, else the build adds

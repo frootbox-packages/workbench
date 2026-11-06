@@ -371,7 +371,10 @@ final readonly class Builder
         return $builds . '/' . self::prefix($project) . 'latest';
     }
 
-    private static function prefix(Project $project): string
+    /**
+     * The start of the name of every build of a project, e.g. "holl24-holl-".
+     */
+    public static function prefix(Project $project): string
     {
         return str_replace('.', '-', $project->name) . '-';
     }
