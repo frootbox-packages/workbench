@@ -419,18 +419,32 @@ final readonly class Builder
     }
 
     /**
-     * The files of a build, relative and sorted, without what the Finder leaves.
+     * The code of a build, relative and sorted: without what the Finder
+     * leaves, without the content and the caches. A build with
+     * --with-content as the earlier one must never list the database or
+     * the media as gone, the website on the server has its own.
      *
      * @return list<string>
      */
     private static function files(string $folder): array
     {
         $files = [];
+        $skipped = [...self::CONTENT, 'var'];
 
         foreach (new RecursiveIteratorIterator(new RecursiveDirectoryIterator($folder, FilesystemIterator::SKIP_DOTS)) as $entry) {
-            if ($entry instanceof SplFileInfo && $entry->isFile() && '.DS_Store' !== $entry->getFilename()) {
-                $files[] = substr($entry->getPathname(), \strlen($folder) + 1);
+            if (!$entry instanceof SplFileInfo || !$entry->isFile() || '.DS_Store' === $entry->getFilename()) {
+                continue;
             }
+
+            $file = substr($entry->getPathname(), \strlen($folder) + 1);
+
+            foreach ($skipped as $content) {
+                if (str_starts_with($file, $content . '/')) {
+                    continue 2;
+                }
+            }
+
+            $files[] = $file;
         }
 
         sort($files, \SORT_STRING);

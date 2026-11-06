@@ -171,7 +171,8 @@ final class BuildTest extends TestCase
         $earlier = $builds . '/site-acme-20261106-091337';
         $build = $builds . '/site-acme-20261106-093006';
 
-        foreach (['BUILD' => 'old', 'vendor/a.php' => 'same', 'vendor/b.php' => 'old', 'vendor/gone.php' => 'gone', 'public/.DS_Store' => 'finder'] as $file => $content) {
+        // The earlier one with --with-content: database, media and caches are never part of a diff.
+        foreach (['BUILD' => 'old', 'vendor/a.php' => 'same', 'vendor/b.php' => 'old', 'vendor/gone.php' => 'gone', 'public/.DS_Store' => 'finder', 'storage/database.sqlite' => 'content', 'public/media/1/a.jpg' => 'image', 'var/cache/x.php' => 'cache'] as $file => $content) {
             Folder::write($earlier . '/' . $file, $content);
         }
 
