@@ -81,6 +81,8 @@ final readonly class Builder
 
         ($this->say)(\sprintf('Copying %s to %s', $project->title(), $folder));
         self::copy($project->path, $folder, $withContent);
+        $database = $folder . '/storage/database.sqlite';
+        $hasDatabase = is_file($database);
 
         // A project of its own may have one already, e.g. from skeleton/.
         if (!is_file($folder . '/.htaccess')) {
@@ -119,7 +121,7 @@ final readonly class Builder
         }
 
         // The connection to the hub belongs to this installation, not to a copy (decision 0284).
-        if ($withContent && is_file($folder . '/storage/database.sqlite')) {
+        if ($withContent && $hasDatabase) {
             ($this->say)('Leaving out the connection to the hub');
 
             if (0 !== ($this->console)($folder, ['hub:disconnect', '--local', '--forget-key'], $live)) {
@@ -135,6 +137,16 @@ final readonly class Builder
         if (0 !== ($this->console)($folder, ['about'], $live)) {
             throw new RuntimeException('The build does not start, see above. It stays in ' . $folder);
         }
+
+        // The console opens SQLite and leaves an empty database behind. Uploaded
+        // over a running website, it would replace the one there. The caches
+        // belong to this machine.
+        if (!$hasDatabase) {
+            self::remove($database);
+        }
+
+        self::remove($folder . '/var');
+        mkdir($folder . '/var', 0o775, true);
 
         file_put_contents($folder . '/.env.live', self::envLive($environment['APP_SECRET']));
         file_put_contents($folder . '/DEPLOY.md', self::deployGuide($project, $withContent));

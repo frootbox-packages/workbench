@@ -143,6 +143,28 @@ final class BuildTest extends TestCase
         self::assertContains(['hub:disconnect', '--local', '--forget-key'], $calls, 'Two installations never share the key of the website.');
     }
 
+    public function testABuildWithoutContentNeverCarriesADatabase(): void
+    {
+        $project = $this->folder . '/Acme/Site';
+        Folder::project($project);
+        // Like bin/frootbox with SQLite: it opens the database and writes a cache.
+        $builder = new Builder(static fn(): int => 0, static function (string $folder): int {
+            Folder::write($folder . '/storage/database.sqlite', '');
+            Folder::write($folder . '/var/cache/extensions.cache', 'built here');
+
+            return 0;
+        }, static function (): void {});
+
+        $build = $builder->build(new Project('site.acme', 'site', $project, 'Acme', 'Site'), $this->folder . '/builds');
+        self::assertSame([], self::files($build['folder'] . '/storage'), 'Uploaded over a running website, it would replace its database.');
+        self::assertSame([], self::files($build['folder'] . '/var'), 'The caches belong to the machine that built.');
+        self::assertDirectoryExists($build['folder'] . '/var');
+
+        Folder::write($project . '/storage/database.sqlite', 'content');
+        $build = $builder->build(new Project('site.acme', 'site', $project, 'Acme', 'Site'), $this->folder . '/builds', withContent: true, now: new \DateTimeImmutable('2026-01-01'));
+        self::assertFileExists($build['folder'] . '/storage/database.sqlite', 'With content the database comes along.');
+    }
+
     /**
      * @return list<string>
      */
