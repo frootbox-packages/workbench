@@ -72,7 +72,7 @@ final readonly class Builder
      */
     public function build(Project $project, string $builds, bool $withContent = false, bool $zip = false, ?DateTimeImmutable $now = null): array
     {
-        $name = str_replace('.', '-', $project->name) . '-' . ($now ?? new DateTimeImmutable())->format('Ymd-His');
+        $name = self::prefix($project) . ($now ?? new DateTimeImmutable())->format('Ymd-His');
         $folder = $builds . '/' . $name;
 
         if (file_exists($folder)) {
@@ -150,6 +150,8 @@ final readonly class Builder
 
         file_put_contents($folder . '/.env.live', self::envLive($environment['APP_SECRET']));
         file_put_contents($folder . '/DEPLOY.md', self::deployGuide($project, $withContent));
+        // On the server it names the build that runs there, for --since.
+        file_put_contents($folder . '/BUILD', $name . "\n");
 
         return ['folder' => $folder, 'zip' => $zip ? self::zip($folder, $folder . '.zip') : null, 'warnings' => self::warnings($folder)];
     }
@@ -325,9 +327,115 @@ final readonly class Builder
             5. A cron job runs `php bin/frootbox schedule:run` every 5 minutes:
                scheduled publishing, backups, statistics, mails.
             6. After an update: `php bin/frootbox migrate` (it backs up the
-               database first), then `php bin/frootbox cache:clear`.
+               database first), then `php bin/frootbox cache:clear`. Without
+               a console: delete `var/cache/`, then "Update now" under
+               Extensions in the backend.
+
+            `BUILD` names this build. For the next update,
+            `workbench build <project> --since <that name>` also makes a
+            folder with only what changed since.
 
             MD;
+    }
+
+    /**
+     * The folder of an earlier build of a project, by its name (as in BUILD
+     * on the server) or path.
+     */
+    public static function earlier(Project $project, string $builds, string $since): string
+    {
+        $since = rtrim(trim($since), '/');
+        $folder = str_contains($since, '/') ? $since : $builds . '/' . $since;
+
+        if (!str_starts_with(basename($folder), self::prefix($project))) {
+            throw new RuntimeException(\sprintf('%s is no build of %s.', basename($folder), $project->title()));
+        }
+
+        if (!is_dir($folder)) {
+            throw new RuntimeException(\sprintf('There is no build %s. The diff needs the folder of the build that runs on the server.', $folder));
+        }
+
+        return $folder;
+    }
+
+    private static function prefix(Project $project): string
+    {
+        return str_replace('.', '-', $project->name) . '-';
+    }
+
+    /**
+     * Only what is new or changed in a build since an earlier one, for a
+     * small upload: <build>-since-<time of the earlier>/, and next to it a
+     * list of the files that are gone.
+     *
+     * @return array{folder: string, zip: string|null, files: int, deleted: list<string>, list: string|null}
+     */
+    public static function diff(string $earlier, string $build, bool $zip = false): array
+    {
+        foreach ([$earlier, $build] as $folder) {
+            if (!is_dir($folder)) {
+                throw new RuntimeException(\sprintf('There is no build %s.', $folder));
+            }
+        }
+
+        $since = 1 === preg_match('/\d{8}-\d{6}$/', basename($earlier), $match) ? $match[0] : basename($earlier);
+        $target = $build . '-since-' . $since;
+
+        if (file_exists($target)) {
+            throw new RuntimeException(\sprintf('%s exists already.', $target));
+        }
+
+        mkdir($target, 0o775, true);
+        $before = self::files($earlier);
+        $after = self::files($build);
+        $count = 0;
+
+        foreach ($after as $file) {
+            $old = $earlier . '/' . $file;
+            $new = $build . '/' . $file;
+
+            if (is_file($old) && filesize($old) === filesize($new) && hash_file('xxh128', $old) === hash_file('xxh128', $new)) {
+                continue;
+            }
+
+            if (!is_dir(\dirname($target . '/' . $file))) {
+                mkdir(\dirname($target . '/' . $file), 0o775, true);
+            }
+
+            copy($new, $target . '/' . $file);
+            chmod($target . '/' . $file, fileperms($new) & 0o777);
+            ++$count;
+        }
+
+        $deleted = array_values(array_diff($before, $after));
+        $list = null;
+
+        if ([] !== $deleted) {
+            $list = $target . '.deleted.txt';
+            file_put_contents($list, implode("\n", $deleted) . "\n");
+        }
+
+        return ['folder' => $target, 'zip' => $zip ? self::zip($target, $target . '.zip') : null, 'files' => $count, 'deleted' => $deleted, 'list' => $list];
+    }
+
+    /**
+     * The files of a build, relative and sorted, without what the Finder leaves.
+     *
+     * @return list<string>
+     */
+    private static function files(string $folder): array
+    {
+        $files = [];
+
+        foreach (new RecursiveIteratorIterator(new RecursiveDirectoryIterator($folder, FilesystemIterator::SKIP_DOTS)) as $entry) {
+            if ($entry instanceof SplFileInfo && $entry->isFile() && '.DS_Store' !== $entry->getFilename()) {
+                $files[] = substr($entry->getPathname(), \strlen($folder) + 1);
+            }
+        }
+
+        sort($files, \SORT_STRING);
+
+        return $files;
     }
 
     private static function zip(string $folder, string $file): string

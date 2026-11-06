@@ -165,6 +165,49 @@ final class BuildTest extends TestCase
         self::assertFileExists($build['folder'] . '/storage/database.sqlite', 'With content the database comes along.');
     }
 
+    public function testADiffHoldsOnlyWhatChangedSinceTheBuildOnTheServer(): void
+    {
+        $builds = $this->folder . '/builds';
+        $earlier = $builds . '/site-acme-20261106-091337';
+        $build = $builds . '/site-acme-20261106-093006';
+
+        foreach (['BUILD' => 'old', 'vendor/a.php' => 'same', 'vendor/b.php' => 'old', 'vendor/gone.php' => 'gone', 'public/.DS_Store' => 'finder'] as $file => $content) {
+            Folder::write($earlier . '/' . $file, $content);
+        }
+
+        foreach (['BUILD' => 'new', 'vendor/a.php' => 'same', 'vendor/b.php' => 'new', 'vendor/new/c.php' => 'new'] as $file => $content) {
+            Folder::write($build . '/' . $file, $content);
+        }
+
+        $project = new Project('site.acme', 'site', $this->folder . '/Acme/Site', 'Acme', 'Site');
+        self::assertSame($earlier, Builder::earlier($project, $builds, 'site-acme-20261106-091337' . "\n"), 'Copied from BUILD on the server.');
+
+        $diff = Builder::diff($earlier, $build, zip: true);
+
+        self::assertSame($build . '-since-20261106-091337', $diff['folder']);
+        self::assertSame(['BUILD', 'vendor/b.php', 'vendor/new/c.php'], self::files($diff['folder']));
+        self::assertSame(3, $diff['files']);
+        self::assertSame(['vendor/gone.php'], $diff['deleted'], 'Without what the Finder leaves.');
+        self::assertSame("vendor/gone.php\n", file_get_contents((string) $diff['list']));
+        self::assertFileExists((string) $diff['zip']);
+    }
+
+    public function testADiffNeedsABuildOfTheSameProject(): void
+    {
+        $project = new Project('site.acme', 'site', $this->folder . '/Acme/Site', 'Acme', 'Site');
+        Folder::write($this->folder . '/builds/other-acme-20261106-091337/BUILD', 'x');
+
+        try {
+            Builder::earlier($project, $this->folder . '/builds', 'other-acme-20261106-091337');
+            self::fail('A build of another project.');
+        } catch (RuntimeException $error) {
+            self::assertStringContainsString('is no build of', $error->getMessage());
+        }
+
+        $this->expectExceptionMessage('There is no build');
+        Builder::earlier($project, $this->folder . '/builds', 'site-acme-20990101-000000');
+    }
+
     /**
      * @return list<string>
      */

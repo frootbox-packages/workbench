@@ -103,6 +103,21 @@ backups) and `public/media/`, for the first upload of a website made in
 the workbench. Set `app.url` in `config/app.yaml` before; the build warns
 without it.
 
+Each build names itself in a file `BUILD`. For an update by FTP, name the
+build that runs on the server:
+
+```bash
+vendor/bin/workbench build holl24 --since holl24-acme-20261106-091337 --zip
+```
+
+Next to the new build, `<build>-since-<time>/` then holds only the files
+that are new or changed, and `<build>-since-<time>.deleted.txt` the ones
+that are gone (they do no harm on the server). The earlier build must
+still be in `var/workbench/builds/`. Upload that folder over the website,
+then delete `var/cache/` on the server and run the update under
+Extensions in the backend, or `bin/frootbox migrate` and `cache:clear`
+with a console.
+
 The web server must show `public/`, never the folder itself: it holds
 `.env` and the database. A `.htaccess` in the folder locks it on Apache
 when the document root is wrong (from `skeleton/`, else the build adds

@@ -41,7 +41,8 @@ final class BuildCommand extends Command
         $this
             ->addArgument('project', InputArgument::REQUIRED, 'Name of the project, e.g. holl24')
             ->addOption('with-content', null, InputOption::VALUE_NONE, 'Also the database and the media of storage/ and public/media/, for the first upload')
-            ->addOption('zip', null, InputOption::VALUE_NONE, 'Also a ZIP file next to the folder');
+            ->addOption('zip', null, InputOption::VALUE_NONE, 'Also a ZIP file next to the folder')
+            ->addOption('since', null, InputOption::VALUE_REQUIRED, 'Also a folder with only what changed since an earlier build, by its name as in BUILD on the server');
     }
 
     protected function execute(InputInterface $input, OutputInterface $output): int
@@ -64,8 +65,14 @@ final class BuildCommand extends Command
             },
         );
 
+        $since = $input->getOption('since');
+        $builds = $workbench->config->var('builds');
+
         try {
-            $build = $builder->build($project, $workbench->config->var('builds'), true === $input->getOption('with-content'), true === $input->getOption('zip'));
+            // Checked first, so a wrong name does not wait for a whole build.
+            $earlier = \is_string($since) ? Builder::earlier($project, $builds, $since) : null;
+            $build = $builder->build($project, $builds, true === $input->getOption('with-content'), true === $input->getOption('zip'));
+            $diff = null === $earlier ? null : Builder::diff($earlier, $build['folder'], true === $input->getOption('zip'));
         } catch (RuntimeException $error) {
             $output->writeln('<error>' . $error->getMessage() . '</error>');
 
@@ -78,6 +85,19 @@ final class BuildCommand extends Command
         if (null !== $build['zip']) {
             $size = filesize($build['zip']);
             $output->writeln(\sprintf('ZIP:   %s (%.1f MB)', $build['zip'], (false === $size ? 0 : $size) / 1048576));
+        }
+
+        if (null !== $diff) {
+            $output->writeln(\sprintf('Diff:  %s (%d files, only what changed)', $diff['folder'], $diff['files']));
+
+            if (null !== $diff['zip']) {
+                $size = filesize($diff['zip']);
+                $output->writeln(\sprintf('ZIP:   %s (%.1f MB)', $diff['zip'], (false === $size ? 0 : $size) / 1048576));
+            }
+
+            if (null !== $diff['list']) {
+                $output->writeln(\sprintf('Gone:  %s (%d files, may be deleted on the server)', $diff['list'], \count($diff['deleted'])));
+            }
         }
 
         $output->writeln('Next:  DEPLOY.md in the folder says how to upload it.');
