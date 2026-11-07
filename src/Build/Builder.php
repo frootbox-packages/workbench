@@ -127,6 +127,13 @@ final readonly class Builder
             if (0 !== ($this->console)($folder, ['hub:disconnect', '--local', '--forget-key'], $live)) {
                 throw new RuntimeException('hub:disconnect failed, see above. The unfinished build stays in ' . $folder);
             }
+
+            // So are the sessions of users and visitors (decision 0319).
+            ($this->say)('Ending the sessions of users and visitors');
+
+            if (0 !== ($this->console)($folder, ['sessions:end'], $live)) {
+                throw new RuntimeException('sessions:end failed, see above. The unfinished build stays in ' . $folder);
+            }
         }
 
         // The packages of the project run from their copy in vendor/.
@@ -147,6 +154,8 @@ final readonly class Builder
 
         self::remove($folder . '/var');
         mkdir($folder . '/var', 0o775, true);
+        // The first action of the day above made a backup; backups stay with the project.
+        self::remove($folder . '/storage/backups');
 
         file_put_contents($folder . '/.env.live', self::envLive($environment['APP_SECRET']));
         file_put_contents($folder . '/DEPLOY.md', self::deployGuide($project, $withContent));

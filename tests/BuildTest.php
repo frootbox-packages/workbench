@@ -141,6 +141,25 @@ final class BuildTest extends TestCase
         Folder::write($project . '/storage/database.sqlite', '');
         $builder->build(new Project('site.acme', 'site', $project, 'Acme', 'Site'), $this->folder . '/builds', withContent: true, now: new \DateTimeImmutable('2026-01-02'));
         self::assertContains(['hub:disconnect', '--local', '--forget-key'], $calls, 'Two installations never share the key of the website.');
+        self::assertContains(['sessions:end'], $calls, 'Nor sessions of users and visitors.');
+    }
+
+    public function testLeavesOutTheBackupMadeWhileBuilding(): void
+    {
+        $project = $this->folder . '/Acme/Site';
+        Folder::project($project);
+        Folder::write($project . '/storage/database.sqlite', '');
+        // Like the first action of the day in hub:disconnect.
+        $builder = new Builder(static fn(): int => 0, static function (string $folder): int {
+            Folder::write($folder . '/storage/backups/2026-01-01-daily.sqlite.gz', 'x');
+
+            return 0;
+        }, static function (): void {});
+
+        $build = $builder->build(new Project('site.acme', 'site', $project, 'Acme', 'Site'), $this->folder . '/builds', withContent: true);
+
+        self::assertFileExists($build['folder'] . '/storage/database.sqlite');
+        self::assertDirectoryDoesNotExist($build['folder'] . '/storage/backups');
     }
 
     public function testABuildWithoutContentNeverCarriesADatabase(): void
